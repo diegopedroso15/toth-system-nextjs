@@ -19,7 +19,7 @@ interface Line {
   position: number;
 }
 
-export default function CreateTot() {
+export default function EditTot( { id }: { id: number }) {
   const router = useRouter();
   const [category, setCategory] = useState("Matemática");
   const [topic, setTopic] = useState("");
@@ -33,6 +33,9 @@ export default function CreateTot() {
   const [lineContent, setLineContent] = useState("");
   const [lineType, setLineType] = useState("");
   const [modalStage, setModalStage] = useState("Seleção");
+  const [linePosition, setLinePosition] = useState(0);
+  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
+  const [canSend, setCanSend] = useState(false);
 
   function addLine() {
     const newLines = {
@@ -41,22 +44,38 @@ export default function CreateTot() {
       position: lines.length + 1,
     };
     setLines([...lines, newLines]);
+    setCanSend(lines.length > 0 ? true : false);
+    setLineContent("");
+    setLineType("");
+  }
+
+  function editLineContent() {
+    const newLines = lines.map((line) => {
+      if (line.position === linePosition) {
+        return {
+          content: lineContent,
+          type: lineType,
+          position: linePosition,
+        };
+      }
+      return line;
+    });
+    setLines(newLines);
     setLineContent("");
     setLineType("");
   }
 
   useEffect(() => {
     async function fetchData() {
-      await fetch("/api/subjects/topics/" + category, {
+      await fetch("/api/questions" + id , {
         method: "GET",
       })
         .then((res) => res.json())
         .then((data) => {
-          setTopics(data);
         });
     }
     fetchData();
-  }, [category]);
+  }, []);
 
   const handleDefineTopic = (key: string) => {
     setTopic(key);
@@ -77,14 +96,14 @@ export default function CreateTot() {
   const handleSubmit = async () => {
     const totData = {
       title,
-      category,
+      subject: category,
+      teacher_id: localStorage.getItem("role_id"),
       topic,
       subtopic,
       lines,
     };
 
-    console.log(totData);
-    /* const response = await fetch("/api/tots", {
+    const response = await fetch("/api/tots", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -94,9 +113,10 @@ export default function CreateTot() {
 
     if (response.ok) {
       alert("Tot criado com sucesso!");
+      router.push("/dashboard");
     } else {
       alert("Erro ao criar tot.");
-    } */
+    }
   };
 
   return (
@@ -190,21 +210,24 @@ export default function CreateTot() {
       )}
 
       <div className="">
-        <ul className="pl-8 font-semibold text-base  ">
+        <ul className="pl-8 font-semibold text-base">
           {lines.map(
             (line, index) =>
               (line.type === "Texto" && (
-                <li key={index} className=" flex">
+                <li key={index} className="flex py-2">
                   {line.content}
                   <div className="pr-2">
-                    <Button isIconOnly className="bg-transparent"
-                    onClick={() => {
-                      setLineContent(line.content);
-                      setLineType(line.type);
-                      setModalStage(line.type);
-                      onOpenChange();
-                    }
-                    }
+                    <Button
+                      isIconOnly
+                      className="bg-transparent"
+                      onClick={() => {
+                        setLineContent(line.content);
+                        setLineType(line.type);
+                        setLinePosition(line.position);
+                        setModalStage(line.type);
+                        setModalMode("edit");
+                        onOpenChange();
+                      }}
                     >
                       <img src="/editIcon.svg" alt="Edit" />
                     </Button>
@@ -212,8 +235,12 @@ export default function CreateTot() {
                 </li>
               )) ||
               (line.type === "Imagem" && (
-                <li key={index} className="py-3">
-                  <img src={line.content} alt="" />
+                <li key={index} className="py-3 flex justify-center content-center">
+                  <img
+                    src={line.content}
+                    alt=""
+                    className="w-full h-auto max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg object-contain"
+                  />
                 </li>
               ))
           )}
@@ -231,14 +258,35 @@ export default function CreateTot() {
         </div>
       )}
 
+      <div className="flex justify-around my-4">
+        <Button
+          onClick={() => router.push("/dashboard")}
+          className="bg-red-600 text-white"
+        >
+          Cancelar
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          isDisabled={!canSend}
+          className="bg-[#5406E2] text-white w-20"
+        >
+          Salvar
+        </Button>
+      </div>
+
       <CreateModal
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         handleAddLine={addLine}
+        handleEditLine={editLineContent}
+        lineContent={lineContent}
         setLineContent={setLineContent}
+        lineType={lineType}
         setLineType={setLineType}
         modalStage={modalStage}
         setModalStage={setModalStage}
+        mode={modalMode}
+        setModalMode={setModalMode}
       />
     </div>
   );

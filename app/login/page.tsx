@@ -22,8 +22,14 @@ export default function Login() {
       if (response.ok) {
         const user = await response.json();
         if (user.role === "teacher") {
+          localStorage.setItem("user", JSON.stringify(user.id));
+          localStorage.setItem("role", user.role);
+          localStorage.setItem("role_id", user.teacher_id);
           router.push("/dashboard");
         } else {
+          localStorage.setItem("user", JSON.stringify(user.id));
+          localStorage.setItem("role", user.role);
+          localStorage.setItem("role_id", user.student_id);
           router.push("/student");
         }
       } else {
